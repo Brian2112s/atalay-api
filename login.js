@@ -2,11 +2,13 @@ const express = require('express');
 const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const cors = require('cors');  // Import CORS middleware
 
 const app = express();
 const PORT = 3000;
 const SECRET_KEY = "your_secret_key"; // Change this to a secure key
 
+app.use(cors());  // Enable CORS for all routes
 app.use(express.json());
 
 // MySQL Database Connection
@@ -29,6 +31,8 @@ db.connect(err => {
 // Registration Route
 app.post('/registration', async (req, res) => {
     try {
+        console.log(req.body);  // Log de request body om te zien of de gegevens goed worden ontvangen
+
         const { name, email, phone_number, password, password_confirmation } = req.body;
 
         if (!name || !email || !phone_number || !password || !password_confirmation) {
@@ -41,6 +45,7 @@ app.post('/registration', async (req, res) => {
 
         db.query('SELECT * FROM users WHERE email = ? OR phone_number = ?', [email, phone_number], async (err, results) => {
             if (err) {
+                console.error("Database error: ", err);  // Log de foutmelding van de database
                 return res.status(500).json({ message: "Database error", error: err.message });
             }
 
@@ -55,6 +60,7 @@ app.post('/registration', async (req, res) => {
 
             db.query(sql, values, (err) => {
                 if (err) {
+                    console.error("Database insertion error: ", err);  // Log database-invoegfouten
                     return res.status(500).json({ message: "Database insertion error", error: err.message });
                 }
                 res.status(201).json({ message: "User registered successfully" });
@@ -62,6 +68,7 @@ app.post('/registration', async (req, res) => {
         });
 
     } catch (error) {
+        console.error("Error: ", error);  // Log eventuele serverfouten
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
