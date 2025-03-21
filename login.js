@@ -69,15 +69,10 @@ app.post('/registration', async (req, res) => {
 // Login Route
 app.post('/login', (req, res) => {
     try {
-        const { email, password, password_confirmation } = req.body;
+        const { email, password } = req.body;
 
-        if (!email || !password || !password_confirmation) {
-            return res.status(400).json({ message: "Email, password, and password confirmation are required" });
-        }
-
-        // Check if password and confirmation match
-        if (password !== password_confirmation) {
-            return res.status(400).json({ message: "Passwords do not match" });
+        if (!email || !password) {
+            return res.status(400).json({ message: "Email and password are required" });
         }
 
         db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
@@ -106,6 +101,7 @@ app.post('/login', (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
+
 
 
 // Start the Server
