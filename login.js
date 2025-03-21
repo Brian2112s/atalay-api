@@ -1,9 +1,11 @@
 const express = require('express');
 const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = 3000;
+const SECRET_KEY = "your_secret_key"; // Change this to a secure key
 
 app.use(express.json());
 
@@ -29,17 +31,14 @@ app.post('/registration', async (req, res) => {
     try {
         const { name, email, phone_number, password, password_confirmation } = req.body;
 
-        // Validate required fields
         if (!name || !email || !phone_number || !password || !password_confirmation) {
-            return res.status(400).json({message: "All fields are required",});
+            return res.status(400).json({ message: "All fields are required" });
         }
 
-        // Check if passwords match
         if (password !== password_confirmation) {
             return res.status(400).json({ message: "Passwords do not match" });
         }
 
-        // Check if email or phone number already exists
         db.query('SELECT * FROM users WHERE email = ? OR phone_number = ?', [email, phone_number], async (err, results) => {
             if (err) {
                 return res.status(500).json({ message: "Database error", error: err.message });
@@ -49,12 +48,10 @@ app.post('/registration', async (req, res) => {
                 return res.status(400).json({ message: "Email or phone number already registered" });
             }
 
-            // Hash password
             const hashedPassword = await bcrypt.hash(password, 10);
 
-            // Insert user into database
             const sql = 'INSERT INTO users (name, email, phone_number, password, role) VALUES (?, ?, ?, ?, ?)';
-            const values = [name, email, phone_number, hashedPassword, 'customer', new Date(), new Date()];
+            const values = [name, email, phone_number, hashedPassword, 'customer'];
 
             db.query(sql, values, (err) => {
                 if (err) {
@@ -68,6 +65,48 @@ app.post('/registration', async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
+
+// Login Route
+app.post('/login', (req, res) => {
+    try {
+        const { email, password, password_confirmation } = req.body;
+
+        if (!email || !password || !password_confirmation) {
+            return res.status(400).json({ message: "Email, password, and password confirmation are required" });
+        }
+
+        // Check if password and confirmation match
+        if (password !== password_confirmation) {
+            return res.status(400).json({ message: "Passwords do not match" });
+        }
+
+        db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
+            if (err) {
+                return res.status(500).json({ message: "Database error", error: err.message });
+            }
+
+            if (results.length === 0) {
+                return res.status(401).json({ message: "Invalid email or password" });
+            }
+
+            const user = results[0];
+
+            const passwordMatch = await bcrypt.compare(password, user.password);
+            if (!passwordMatch) {
+                return res.status(401).json({ message: "Invalid email or password" });
+            }
+
+            // Generate JWT token
+            const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, SECRET_KEY, { expiresIn: "1h" });
+
+            res.status(200).json({ message: "Login successful", token });
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+});
+
 
 // Start the Server
 app.listen(PORT, () => {
