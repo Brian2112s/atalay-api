@@ -36,21 +36,21 @@ app.post('/registration', async (req, res) => {
         const { name, email, phone_number, password, password_confirmation } = req.body;
 
         if (!name || !email || !phone_number || !password || !password_confirmation) {
-            return res.status(400).json({ message: "All fields are required" });
+            return res.status(400).json({ message: "Alle velden zijn vereist" }); // In het Nederlands
         }
 
         if (password !== password_confirmation) {
-            return res.status(400).json({ message: "Passwords do not match" });
+            return res.status(400).json({ message: "Wachtwoorden komen niet overeen" }); // In het Nederlands
         }
 
         db.query('SELECT * FROM users WHERE email = ? OR phone_number = ?', [email, phone_number], async (err, results) => {
             if (err) {
                 console.error("Database error: ", err);  // Log de foutmelding van de database
-                return res.status(500).json({ message: "Database error", error: err.message });
+                return res.status(500).json({ message: "Database fout", error: err.message }); // In het Nederlands
             }
 
             if (results.length > 0) {
-                return res.status(400).json({ message: "Email or phone number already registered" });
+                return res.status(400).json({ message: "E-mail of telefoonnummer is al geregistreerd" }); // In het Nederlands
             }
 
             const hashedPassword = await bcrypt.hash(password, 10);
@@ -61,15 +61,15 @@ app.post('/registration', async (req, res) => {
             db.query(sql, values, (err) => {
                 if (err) {
                     console.error("Database insertion error: ", err);  // Log database-invoegfouten
-                    return res.status(500).json({ message: "Database insertion error", error: err.message });
+                    return res.status(500).json({ message: "Database invoegfout", error: err.message }); // In het Nederlands
                 }
-                res.status(201).json({ message: "User registered successfully" });
+                res.status(201).json({ message: "Gebruiker succesvol geregistreerd" }); // In het Nederlands
             });
         });
 
     } catch (error) {
         console.error("Error: ", error);  // Log eventuele serverfouten
-        res.status(500).json({ message: "Internal server error", error: error.message });
+        res.status(500).json({ message: "Interne serverfout", error: error.message }); // In het Nederlands
     }
 });
 
@@ -79,35 +79,36 @@ app.post('/login', (req, res) => {
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return res.status(400).json({ message: "Email and password are required" });
+            return res.status(400).json({ message: "E-mail en wachtwoord zijn vereist" }); 
         }
 
         db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
             if (err) {
-                return res.status(500).json({ message: "Database error", error: err.message });
+                return res.status(500).json({ message: "Database fout", error: err.message }); 
             }
 
             if (results.length === 0) {
-                return res.status(401).json({ message: "Invalid email or password" });
+                return res.status(401).json({ message: "Ongeldige e-mail of wachtwoord" }); 
             }
 
             const user = results[0];
 
             const passwordMatch = await bcrypt.compare(password, user.password);
             if (!passwordMatch) {
-                return res.status(401).json({ message: "Invalid email or password" });
+                return res.status(401).json({ message: "Ongeldige e-mail of wachtwoord" }); 
             }
 
             // Generate JWT token
             const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, SECRET_KEY, { expiresIn: "1h" });
 
-            res.status(200).json({ message: "Login successful", token });
+            res.status(200).json({ message: "Inloggen succesvol", token }); 
         });
 
     } catch (error) {
-        res.status(500).json({ message: "Internal server error", error: error.message });
+        res.status(500).json({ message: "Interne serverfout", error: error.message }); 
     }
 });
+
 
 
 
